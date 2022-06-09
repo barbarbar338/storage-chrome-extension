@@ -1,9 +1,9 @@
-import { BookmarkForm } from "@components/BookmarkForm";
-import React, { ChangeEvent, FC, FormEvent, useEffect, useState } from "react";
+import BookmarkForm from "@components/BookmarkForm";
+import React, { ChangeEvent, FC, FormEvent, useState } from "react";
 import { toast } from "react-toastify";
 import { browser } from "webextension-polyfill-ts";
 
-export const LoginForm: FC = () => {
+const LoginForm: FC = () => {
 	const [loading, setLoading] = useState(false);
 	const [storageUrl, setStorageUrl] = useState("");
 	const [username, setUsername] = useState("");
@@ -41,19 +41,19 @@ export const LoginForm: FC = () => {
 					return;
 				}
 
-				const access_token = body.data.access_token;
+				const accessToken = body.data.access_token;
 
 				await browser.storage.sync.set({
-					token: access_token,
+					token: accessToken,
 					host: storageUrl,
 				});
 
 				toast.success("Login successful");
-				setToken(access_token);
+				setToken(accessToken);
 				setRedirect(true);
 			})
-			.catch((e) => {
-				toast.error(e.message);
+			.catch((err) => {
+				toast.error(err.message);
 			});
 
 		setLoading(false);
@@ -112,3 +112,5 @@ export const LoginForm: FC = () => {
 		</form>
 	);
 };
+
+export default LoginForm;

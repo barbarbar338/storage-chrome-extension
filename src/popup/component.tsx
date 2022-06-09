@@ -1,5 +1,5 @@
-import { BookmarkForm } from "@components/BookmarkForm";
-import { LoginForm } from "@components/Login";
+import Home from "@components/Home";
+import LoginForm from "@components/Login";
 import React, { useEffect, useState } from "react";
 import { ToastContainer } from "react-toastify";
 import { browser } from "webextension-polyfill-ts";
@@ -11,11 +11,11 @@ const Popup = () => {
 
 	useEffect(() => {
 		async function effect() {
-			const { token: access_token, host: storage_host } =
+			const { token: accessToken, host: storageHost } =
 				await browser.storage.sync.get(["token", "host"]);
-			if (access_token && storage_host) {
-				setToken(access_token);
-				setHost(storage_host);
+			if (accessToken && storageHost) {
+				setToken(accessToken);
+				setHost(storageHost);
 				setRedirect(true);
 			}
 		}
@@ -36,11 +36,7 @@ const Popup = () => {
 				pauseOnHover
 			/>
 			<div className="mx-4 my-4">
-				{redirect ? (
-					<BookmarkForm host={host} token={token} />
-				) : (
-					<LoginForm />
-				)}
+				{redirect ? <Home host={host} token={token} /> : <LoginForm />}
 			</div>
 		</div>
 	);

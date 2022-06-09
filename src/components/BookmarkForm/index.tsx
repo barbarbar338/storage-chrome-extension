@@ -1,6 +1,8 @@
 import React, { ChangeEvent, FC, FormEvent, useEffect, useState } from "react";
 import { toast } from "react-toastify";
 import { browser, Tabs } from "webextension-polyfill-ts";
+import isImage from "../../utils/isImage";
+import validURL from "../../utils/validURL";
 
 export interface IBookmarkForm {
 	token: string;
@@ -39,13 +41,13 @@ chrome.runtime.sendMessage({
 
 const placeHolder = "https://picsum.photos/1280/720";
 
-export const BookmarkForm: FC<IBookmarkForm> = ({ token, host }) => {
+const BookmarkForm: FC<IBookmarkForm> = ({ token, host }) => {
 	const [title, setTitle] = useState("");
 	const [url, setUrl] = useState("");
 	const [description, setDescription] = useState("");
 	const [imageUrl, setImageUrl] = useState(placeHolder);
 	const [loading, setLoading] = useState(false);
-	const [_, setTab] = useState<Tabs.Tab>();
+	const [, setTab] = useState<Tabs.Tab>();
 
 	useEffect(() => {
 		browser.tabs
@@ -57,22 +59,22 @@ export const BookmarkForm: FC<IBookmarkForm> = ({ token, host }) => {
 					return;
 				}
 				setTab(currentTab);
-				currentTab.title && setTitle(currentTab.title);
-				currentTab.url && setUrl(currentTab.url);
-				currentTab.favIconUrl && setImageUrl(currentTab.favIconUrl);
+				if (currentTab.title) setTitle(currentTab.title);
+				if (currentTab.url) setUrl(currentTab.url);
+				if (currentTab.favIconUrl) setImageUrl(currentTab.favIconUrl);
 
 				browser.tabs.executeScript(currentTab.id, {
 					code: metaScript,
 				});
 			});
 
-		browser.runtime.onMessage.addListener(function (request) {
-			if (request.method == "getMetaTags") {
-				const metas: IMeta[] = request.metas;
-				const description = metas.find(
-					(meta) => meta.name === "description",
+		browser.runtime.onMessage.addListener((request) => {
+			if (request.method === "getMetaTags") {
+				const { metas } = request;
+				const desc = metas.find(
+					(meta: IMeta) => meta.name === "description",
 				);
-				description && setDescription(description.content);
+				if (desc) setDescription(desc.content);
 			}
 		});
 	}, []);
@@ -88,8 +90,14 @@ export const BookmarkForm: FC<IBookmarkForm> = ({ token, host }) => {
 		e.preventDefault();
 		if (loading) return;
 		setLoading(true);
-		if (!validURL(url)) return toast.error("Invalid URL");
-		if (!(await isImage(imageUrl))) return toast.error("Invalid image URL");
+		if (!validURL(url)) {
+			toast.error("Invalid URL");
+			return;
+		}
+		if (!(await isImage(imageUrl))) {
+			toast.error("Invalid image URL");
+			return;
+		}
 
 		await fetch(`${host}/v1/bookmark`, {
 			method: "POST",
@@ -198,26 +206,4 @@ export const BookmarkForm: FC<IBookmarkForm> = ({ token, host }) => {
 	);
 };
 
-// https://stackoverflow.com/a/5717133/10124281
-function validURL(str: string): boolean {
-	const pattern = new RegExp(
-		"^(https?:\\/\\/)?" + // protocol
-			"((([a-z\\d]([a-z\\d-]*[a-z\\d])*)\\.)+[a-z]{2,}|" + // domain name
-			"((\\d{1,3}\\.){3}\\d{1,3}))" + // OR ip (v4) address
-			"(\\:\\d+)?(\\/[-a-z\\d%_.~+]*)*" + // port and path
-			"(\\?[;&a-z\\d%_.~+=-]*)?" + // query string
-			"(\\#[-a-z\\d_]*)?$",
-		"i",
-	); // fragment locator
-	return !!pattern.test(str);
-}
-
-// https://stackoverflow.com/questions/9519569/what-is-the-true-way-of-checking-a-string-for-image-url-and-existence-if-valid/9526102
-async function isImage(str: string): Promise<boolean> {
-	return new Promise<boolean>((resolve) => {
-		const img = new Image();
-		img.onload = () => resolve(true);
-		img.onerror = () => resolve(false);
-		img.src = str;
-	});
-}
+export default BookmarkForm;
